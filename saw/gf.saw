@@ -1,0 +1,83 @@
+m <- llvm_load_module "gf.bc";
+import "../cryptol/gf.cry";
+
+let w4_z3 = w4_unint_z3 [];
+
+
+let gf_iszero_sp = do {
+    a <- llvm_fresh_var "a" (llvm_int 16);
+    llvm_execute_func [llvm_term a];
+    llvm_return (llvm_term {{ gf_iszero a }}); 
+};
+
+gf_iszero_ver <- llvm_verify m "gf_iszero" [] false gf_iszero_sp w4_z3;
+print("gf_iszero done!");
+
+
+let gf_add_sp = do {
+    in0 <- llvm_fresh_var "in0" (llvm_int 16);
+    in1 <- llvm_fresh_var "in1" (llvm_int 16);
+    llvm_execute_func [llvm_term in0, llvm_term in1];
+    llvm_return (llvm_term {{gf_add in0 in1 }}); 
+};
+
+gf_add_ver <- llvm_verify m "gf_add" [] false gf_add_sp w4_z3;
+print("gf_add done!");
+
+
+let gf_mul_sp = do {
+    in0 <- llvm_fresh_var "in0" (llvm_int 16);
+    in1 <- llvm_fresh_var "in1" (llvm_int 16);
+    llvm_execute_func [llvm_term in0, llvm_term in1];
+    llvm_return (llvm_term {{gf_mul in0 in1}});
+};
+
+gf_mul_ver <- llvm_verify m "gf_mul" [] false gf_mul_sp w4_z3;
+print("gf_mul done!");
+
+
+let gf_sq_sp = do {
+    k <- llvm_fresh_var "in" (llvm_int 16);
+    llvm_execute_func [llvm_term k];
+    llvm_return (llvm_term {{gf_sq k}});
+};
+
+gf_sq_ver <- llvm_verify m "gf_sq" [] false gf_sq_sp w4_z3;
+print("gf_sq done!");
+
+
+let gf_inv_sp = do {
+    k <- llvm_fresh_var "in" (llvm_int 16);
+    llvm_execute_func [llvm_term k];
+    llvm_return (llvm_term {{gf_inv k}});
+};
+
+gf_inv_ver <- llvm_verify m "gf_inv" [] false gf_inv_sp w4_z3;
+print("gf_inv done!");
+
+
+let gf_frac_sp = do {
+    den <- llvm_fresh_var "den" (llvm_int 16);
+    num <- llvm_fresh_var "num" (llvm_int 16);
+    llvm_execute_func [llvm_term den, llvm_term num];
+    llvm_return (llvm_term {{gf_frac den num}});
+};
+
+gf_frac_ver <- llvm_verify m "gf_frac" [] false gf_frac_sp w4_z3;
+print("gf_frac done!");
+
+
+/*let GF_mul_sp = do {
+    out <- llvm_alloc (llvm_array 64 (llvm_int 16));
+    in0 <- llvm_fresh_var "in0" (llvm_int 16);
+    in0_point <- llvm_alloc_readonly (llvm_int 16);
+    llvm_points_to in0_point (llvm_term in0);
+    in1 <- llvm_fresh_var "in1" (llvm_int 16);
+    in1_point <- llvm_alloc_readonly (llvm_int 16);
+    llvm_points_to in0_point (llvm_term in1);
+    llvm_execute_func [out, in0_point, in1_point];
+    llvm_points_to out (llvm_term {{GF_mul in0 in1}});
+};
+
+GF_mul_ver <- llvm_verify m "GF_mul" [gf_mul_ver] false GF_mul_sp w4_z3; 
+print("GF_mul done!");*/

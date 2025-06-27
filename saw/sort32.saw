@@ -1,0 +1,14 @@
+m <- llvm_load_module "linked.bc";
+import "../cryptol/sort32.cry";
+let w4_z3 = w4_unint_z3 [];
+
+let int32_sort_sp = do {
+  x <- llvm_fresh_var "x" (llvm_array 4 (llvm_int 32));
+  px <- llvm_alloc_readonly (llvm_array 4 (llvm_int 32));
+  llvm_points_to px (llvm_term x);
+  llvm_execute_func [px, llvm_term {{2 : [64]}}];
+  llvm_points_to px (llvm_term {{ int32_sort x }});
+};
+
+int32_sort_ver <- llvm_verify m "int32_sort" [] false int32_sort_sp w4_z3;
+print("store_gf done!");

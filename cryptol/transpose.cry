@@ -1,0 +1,4 @@
+module transpose where 
+
+transpose_64x64 : [64][64] -> [64][64]
+transpose_64x64 x = reverse (transpose (reverse x))

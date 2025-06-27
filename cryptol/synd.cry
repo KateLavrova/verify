@@ -1,0 +1,10 @@
+module synd where
+import gf
+import root
+
+        
+synd_loop : [65][16] -> [16] -> [16] -> [128][16] -> [128][16]
+synd_loop f li c in = [ gf_add z (gf_mul e_inv c) | z <- in | e_inv <- e_invs ]
+  where e = eval f li
+        e_inv_pre = gf_inv (gf_mul e e)
+        e_invs = [e_inv_pre] # [ gf_mul e_inv li | e_inv <- e_invs ]

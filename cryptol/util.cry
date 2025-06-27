@@ -1,0 +1,30 @@
+module util where 
+
+store_gf : [16] -> [2][8]
+store_gf a = [(drop`{8} a), (take`{8} a)]
+
+load_gf : [2][8] -> [16]
+load_gf src = ((zext (src@1) << 8) || zext (src@0)) && 0x0FFF
+
+load4 : [4][8] -> [32]
+load4 in = join [in@3, in@2, in@1, in@0]
+                  
+load8 : [4][16] -> [64]
+load8 in = join [in@3, in@2, in@1, in@0]
+
+bitrev : [16] -> [16]
+bitrev a = res 
+    where 
+        a0 = ((a && 0x00FF) << 8) || ((a && 0xFF00) >> 8)
+        a1 = ((a0 && 0x0F0F) << 4) || ((a0 && 0xF0F0) >> 4)
+        a2 = ((a1 && 0x3333) << 2) || ((a1 && 0xCCCC) >> 2)
+        a3 = ((a2 && 0x5555) << 1) || ((a2 && 0xAAAA) >> 1)
+        res = a3 >> 4
+
+store8 : [64] -> [8][8]
+store8 in = [(take`{8} (drop` {56} in)), (take`{8} (drop` {48} in)), (take`{8} (drop` {40} in)), (take`{8} (drop` {32} in)), (take`{8} (drop` {24} in)), (take`{8} (drop` {16} in)), (take`{8} (drop` {8} in)), (take`{8} in)]
+
+
+
+// /Users/greem/VsCodeMcElice/saw-1.2-macos-14-ARM64/bin/saw pr.saw 
+//6

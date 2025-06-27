@@ -1,0 +1,15 @@
+m <- llvm_load_module "transpose.bc";
+import "../cryptol/transpose.cry";
+let w4_yices = w4_unint_yices [];
+
+let transpose_64x64_spec = do {
+  pout <- llvm_alloc (llvm_array 64 (llvm_int 64));
+  in1 <- llvm_fresh_var "in" (llvm_array 64 (llvm_int 64));
+  pin <- llvm_alloc (llvm_array 64 (llvm_int 64));
+  llvm_points_to pin (llvm_term in1);
+  llvm_execute_func [pout, pin];
+  llvm_points_to pout (llvm_term {{ transpose_64x64 in1 }});
+};
+
+s <- llvm_verify m "transpose_64x64" [] false transpose_64x64_spec w4_yices;
+print("transpose_64x64 done!");

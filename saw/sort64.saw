@@ -1,0 +1,14 @@
+m <- llvm_load_module "linked.bc"; 
+import "../cryptol/sort64.cry";
+let w4_z3 = w4_unint_z3 [];
+
+let uint64_sort_sp = do {
+    xs <- llvm_fresh_var "xs" (llvm_array 4 (llvm_int 64));
+    pxs <- llvm_alloc (llvm_array 4 (llvm_int 64));
+    llvm_points_to pxs (llvm_term xs);
+    llvm_execute_func [pxs, llvm_term {{4 : [64]}}];
+    llvm_points_to pxs (llvm_term {{ uint64_sort xs }});
+};
+
+uint64_sort_ver <- llvm_verify m "uint64_sort" [] false uint64_sort_sp w4_z3;
+print("uint64_sort done!");

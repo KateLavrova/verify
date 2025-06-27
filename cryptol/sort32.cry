@@ -1,0 +1,33 @@
+module sort where 
+
+int32_sort : {m} (fin m) => [m][32] -> [m][32]
+int32_sort xs_init = last xss
+  where xss = [xs_init] # [ if (s.0 >= s.1) ||
+                                (s.0 >= `m) || 
+                                (s.1 >= `m) 
+                                then xs 
+                            else updates xs [s.0, s.1] 
+                            [min (xs @ s.0) (xs @ s.1), 
+                            max (xs @ s.0) (xs @ s.1)]
+                          | xs <- xss 
+                          | s <- join (sort_synd`{lg2 m}) ]
+        sort_synd: {d} (fin d) => [d*d][2^^d]
+                                    (Integer, Integer)
+        sort_synd = [[(n, par n l p) 
+                    | n <- [0 .. 2^^d - 1]] 
+                    | l <- take`{d}[1 ... ], p <- take`{d}[1 ... ]]
+          where par n l p = if p > l 
+                                then n 
+                            else
+                                if p == 1 
+                                    then toInteger 
+                                ((fromInteger n) ^ 
+                                    (1 << (l - 1)) : [d + 1])
+                                else if (sn == 0) 
+                                        || (sn == b - 1) 
+                                        then n
+                                else if (sn % 2 == 0) 
+                                        then n - sc
+                                else n + sc
+                                  where (sc,b)=(2^^(l-p),2^^p)
+                                        sn = n/sc-(n/sc/b)*b

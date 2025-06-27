@@ -1,0 +1,84 @@
+module gf where 
+
+gf_iszero : [16] -> [16]
+gf_iszero a = if a == 0 then 0x1fff else 0
+
+gf_add: [16] -> [16] -> [16]
+gf_add in0 in1 = in0 ^ in1
+
+gf_mul : [16] -> [16] -> [16]  
+gf_mul in0 in1 = (drop res) && 0x0FFF
+  where 
+    in01 = zext in0 : [32]
+    in11 = zext in1 : [32]
+    m = [zero] # [z ^ (in01 * (in11 && (1 << i))) | z <- m | i <- [0 .. < 12]]
+    tmp = last m
+    a = last m && (zext 0x7FC000)
+    a1 = ((last m ^ (a >> 9)) ^ (a >> 12)) && (zext 0x3000)
+    res = ((((tmp ^ (a >> 9)) ^ (a >> 12)) ^ (a1 >> 9)) ^ (a1 >> 12))
+
+gf_sq : [16] -> [16]
+gf_sq xaa = (drop res1) && 0x0FFF
+  where 
+    x = zext xaa : [32]
+    x1= (x || (x << 8)) && (zext 0x00FF00FF)
+    x2 = (x1 || (x1 << 4)) && (zext 0x0F0F0F0F)
+    x3 = (x2 || (x2 << 2)) && (zext 0x33333333) 
+    x4 = (x3 || (x3 << 1)) && (zext 0x55555555)
+    tmp = x4 && (zext 0x7FC000)
+    res = x4 ^ (tmp >> 9) ^ (tmp >> 12)
+    tmp1  = res && (zext 0x3000)
+    res1 = res ^ (tmp1 >> 9) ^ (tmp1 >> 12)
+  
+gf_inv : [16] -> [16] // возвращает обратный элемент 
+gf_inv in = (drop res) && 0x0FFF
+  where 
+    out = gf_sq in
+    tmp = gf_mul out in 
+    out1 = gf_sq tmp 
+    out2 = gf_sq out1 
+    tmp1 = gf_mul out2 tmp
+    out3 = gf_sq tmp1 
+    out4 = gf_sq out3
+    out5 = gf_sq out4
+    out6 = gf_sq out5
+    out7 = gf_mul out6 tmp1 
+    out8 = gf_sq out7
+    out9 = gf_sq out8
+    out10 = gf_mul out9 tmp
+    out11 = gf_sq out10
+    out12 = gf_mul out11 in 
+    res = gf_sq out12
+
+gf_frac : [16] -> [16] -> [16]
+gf_frac den num = gf_mul a num 
+  where 
+    a = gf_inv den
+
+
+GF_mul_dcycle : [64][16] -> [64][16] -> [128][16]
+GF_mul_dcycle in0 in1 = last m
+  where m = [zero] # [update z (i + j) ((z@((i + j))) ^ ( gf_mul (in0@i) (in1@j) )) | z <- m | j <- [0..63] , i <- [0..63] ]
+
+GF_mul_cycle  : [128][16] -> [64][16]
+GF_mul_cycle  in = take`{64} (last m)
+  where m = [in] # [update_i z i | z <- m | i <- [64 .. 126]]
+        update_i z i = m3
+                where m1 = update z (i - 64 + 3) ((z@((i - 64 + 3))) ^ (z@i))
+                      m2 = update z (i - 64 + 1) ((z@((i - 64 + 1))) ^ (m1@i))
+                      m3 = update z (i - 64 + 0) ((z@((i - 64))) ^ (gf_mul (m2@i) 0x0002))
+
+GF_mul_lastcycle : [64][16] -> [64][16]
+GF_mul_lastcycle in = last m
+  where m = [zero] # [update z i (in@i) | z <- m | i <- [0 .. 63]]
+
+GF_mul : [64][16] -> [64][16] -> [64][16]
+GF_mul in0 in1 = m2
+  where 
+    m = GF_mul_dcycle in0 in1
+    m1 = GF_mul_cycle m 
+    m2 = GF_mul_lastcycle m1
+                     
+                      
+        
+

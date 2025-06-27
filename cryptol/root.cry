@@ -1,0 +1,10 @@
+module root where
+
+import gf
+
+eval : [65][16] -> [16] -> [16]
+eval f a = rs ! 0
+  where rs = [f ! 0] # [gf_add (gf_mul r a) (f ! i) | r <- rs | i <- [1 .. 64]]
+
+root : [65][16] -> [3488][16] -> [3488][16]
+root f = map (eval f)

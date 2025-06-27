@@ -1,0 +1,32 @@
+m <- llvm_load_module "linked.bc";
+import "../cryptol/root.cry";
+import "../cryptol/gf.cry";
+let w4_z3 = w4_unint_z3 [];
+
+let eval_sp = do {
+  f <- llvm_fresh_var "f" (llvm_array 65 (llvm_int 16));
+  pf <- llvm_alloc_readonly (llvm_array 65 (llvm_int 16));
+  llvm_points_to pf (llvm_term f);
+  a <- llvm_fresh_var "a" (llvm_int 16);
+  llvm_execute_func [pf, llvm_term a];
+  llvm_return (llvm_term {{ eval f a }});
+};
+
+eval_ver <- llvm_verify m "eval" [] false eval_sp w4_z3;
+print("eval done!");
+
+
+let root_sp = do {
+  pout <- llvm_alloc (llvm_array 3488 (llvm_int 16));
+  f <- llvm_fresh_var "f" (llvm_array 65 (llvm_int 16));
+  pf <- llvm_alloc_readonly (llvm_array 65 (llvm_int 16));
+  llvm_points_to pf (llvm_term f);
+  L <- llvm_fresh_var "L" (llvm_array 3488 (llvm_int 16));
+  pL <- llvm_alloc_readonly (llvm_array 3488 (llvm_int 16));
+  llvm_points_to pL (llvm_term L);
+  llvm_execute_func [pout, pf, pL];
+  llvm_points_to pout (llvm_term {{ root f L }});
+};
+
+root_ov <- llvm_verify m "root" [eval_ver] false root_sp (w4_unint_z3 ["eval"]);
+print("eval done!");

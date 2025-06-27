@@ -1,0 +1,73 @@
+m <- llvm_load_module "util.bc";
+import "../cryptol/util.cry";
+let w4_z3 = w4_unint_z3 [];
+
+// store_gf
+let store_gf_sp = do {
+    p <- llvm_alloc (llvm_array 2 (llvm_int 8));
+    a <- llvm_fresh_var "a" (llvm_int 16);
+    llvm_execute_func [p, llvm_term a];
+    llvm_points_to p (llvm_term {{ store_gf a }}); 
+};
+
+store_gf_ver <- llvm_verify m "store_gf" [] false store_gf_sp w4_z3;
+print("store_gf done!");
+
+//load_gf
+let load_gf_sp = do {
+    src <- llvm_fresh_var "src" (llvm_array 2 (llvm_int 8));
+    p <- llvm_alloc_readonly (llvm_array 2 (llvm_int 8));
+    llvm_points_to p (llvm_term src);
+    llvm_execute_func [p];
+    llvm_return (llvm_term {{load_gf src}});
+};
+
+load_gf_ver <- llvm_verify m "load_gf" [] false load_gf_sp w4_z3;
+print("load_gf done!");
+
+//load4
+let load4_sp = do {
+    src <- llvm_fresh_var "src" (llvm_array 4 (llvm_int 8));
+    p <- llvm_alloc_readonly (llvm_array 4 (llvm_int 8));
+    llvm_points_to p (llvm_term src);
+    llvm_execute_func [p];
+    llvm_return (llvm_term {{load4 src}});
+};
+
+load4_ver <- llvm_verify m "load4" [] false load4_sp w4_z3;
+print("load4 done!");
+
+//load8
+let load8_sp = do {
+    src <- llvm_fresh_var "src" (llvm_array 4 (llvm_int 16));
+    p <- llvm_alloc_readonly (llvm_array 4 (llvm_int 16));
+    llvm_points_to p (llvm_term src);
+    llvm_execute_func [p];
+    llvm_return (llvm_term {{load8 src}});
+};
+
+load8_ver <- llvm_verify m "load8" [] false load8_sp w4_z3;
+print("load8 done!");
+
+//birev 
+let bitrev_sp = do {
+    a <- llvm_fresh_var "a" (llvm_int 16);
+    llvm_execute_func [llvm_term a];
+    llvm_return (llvm_term {{bitrev a}});
+};
+
+bitrev_ver <- llvm_verify m "bitrev" [] false bitrev_sp w4_z3;
+print("bitrev done!");
+
+//store8 
+let store8_sp = do {
+    p <- llvm_alloc (llvm_array 8 (llvm_int 8));
+    a <- llvm_fresh_var "in" (llvm_int 64);
+    llvm_execute_func [p, llvm_term a];
+    llvm_points_to p (llvm_term {{ store8 a}});  
+};
+
+store8_ver <- llvm_verify m "store8" [] false store8_sp w4_z3;
+print("store8 done!");
+// clang -emit-llvm -c util.c -o ../saw/util.bc "-DCRYPTO_NAMESPACE(x)=x" "-D_CRYPTO_NAMESPACE(x)=_##x"
+// /home/greem/saw--ubuntu/bin/saw util.saw

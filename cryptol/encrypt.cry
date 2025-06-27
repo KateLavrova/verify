@@ -1,0 +1,39 @@
+module encrypt where
+
+same_mask : [16] -> [16] -> [8]
+same_mask x y = repeat (x == y)
+
+
+//syndrome_bytewise : [96*8*340][8] -> [96+340][8] -> [96][8]
+//syndrome_bytewise pk e = e_id_bytes ^ pk_mul_bytes
+  //where
+    //(e_id_bytes, e_pk_bytes) = splitAt`{96} e
+    //pk_row_groups = split`{96} pk
+    //pk_mul_bytes = [sum [foldl' (^) zero (zipWith (&&) u e_pk_bytes) << i
+   //                | u <- split`{8} pk_row_group
+   //                | i <- [0..7]]
+   //                | pk_row_group <- pk_row_groups]
+
+
+
+syndrome_loop : [3488/8][8] -> [340][8] -> [16] -> [96][8] -> [96][8]
+syndrome_loop error_vector pk_row row_index accumulator = new_accumulator
+  where
+    extended_row = zero # pk_row : [3488/8][8]
+    modified_row = update extended_row (row_index/8)
+                 ((extended_row @ (row_index/8)) || (1 << (row_index%8)))
+    error_bits = join (map reverse error_vector) : [3488]
+    row_bits = join (map reverse modified_row) : [3488]
+    parity_bit = if foldl' (^) False (zipWith (&&) row_bits error_bits)
+                then 1 else 0
+    new_accumulator = update accumulator (row_index/8)
+                     ((accumulator @ (row_index/8)) || (parity_bit << (row_index%8)))
+
+syndrome : [768*340][8] -> [3488/8][8] -> [96][8]
+syndrome pk e = last ss
+  where pk_ptrs = split`{768} pk
+        ss = [zero] #   [ syndrome_loop e pk_ptr i s  
+                        | pk_ptr <- pk_ptrs
+                        | i <- [0 .. <768] 
+                        | s <- ss
+                        ]

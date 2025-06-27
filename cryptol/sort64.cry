@@ -1,0 +1,18 @@
+module sort where 
+
+uint64_sort : {m} (fin m) => [m][64] -> [m][64]
+uint64_sort xs_init = last xss
+  where xss = [xs_init] # [ if (s.0 >= s.1) || (s.0 >= `m) || (s.1 >= `m) 
+                            then xs 
+                            else updates xs [s.0, s.1] [min (xs @ s.0) (xs @ s.1), max (xs @ s.0) (xs @ s.1)]
+                          | xs <- xss 
+                          | s <- join (sort_syndrome`{lg2 m}) ]
+        sort_syndrome : {d} (fin d) => [d*d][2^^d](Integer, Integer)
+        sort_syndrome = [[(n, partner n l p) | n <- [0 .. 2^^d - 1]] 
+                        | l <- take`{d} [1 ... ], p <- take`{d} [1 ... ]]
+          where partner n l p = if p > l then n else
+                                if p == 1 then toInteger ((fromInteger n) ^ (1 << (l - 1)) : [d + 1])
+                                else  if (sn == 0) || (sn == box - 1) then n
+                                      else if (sn % 2 == 0) then n - scale else n + scale
+                                  where (scale, box) = (2^^(l - p), 2^^p)
+                                        sn = n / scale - (n / scale / box) * box

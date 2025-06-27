@@ -1,0 +1,123 @@
+m <- llvm_load_module "linked.bc";
+import "../cryptol/synd.cry";
+import "../cryptol/gf.cry";
+import "../cryptol/root.cry";
+let w4_z3 = w4_unint_z3 [];
+
+//gf_iszero
+let gf_iszero_sp = do {
+    a <- llvm_fresh_var "a" (llvm_int 16);
+    llvm_execute_func [llvm_term a];
+    llvm_return (llvm_term {{ gf_iszero a }}); 
+};
+
+gf_iszero_ver <- llvm_verify m "gf_iszero" [] false gf_iszero_sp w4_z3;
+print("gf_iszero done!");
+
+//gf_add
+let gf_add_sp = do {
+    in0 <- llvm_fresh_var "in0" (llvm_int 16);
+    in1 <- llvm_fresh_var "in1" (llvm_int 16);
+    llvm_execute_func [llvm_term in0, llvm_term in1];
+    llvm_return (llvm_term {{gf_add in0 in1 }}); 
+};
+
+gf_add_ver <- llvm_verify m "gf_add" [] false gf_add_sp w4_z3;
+print("gf_add done!");
+
+//gf_mul
+let gf_mul_sp = do {
+    in0 <- llvm_fresh_var "in0" (llvm_int 16);
+    in1 <- llvm_fresh_var "in1" (llvm_int 16);
+    llvm_execute_func [llvm_term in0, llvm_term in1];
+    llvm_return (llvm_term {{gf_mul in0 in1}});
+};
+
+gf_mul_ver <- llvm_verify m "gf_mul" [] false gf_mul_sp w4_z3;
+print("gf_mul done!");
+
+//gf_sq
+let gf_sq_sp = do {
+    k <- llvm_fresh_var "in" (llvm_int 16);
+    llvm_execute_func [llvm_term k];
+    llvm_return (llvm_term {{gf_sq k}});
+};
+
+gf_sq_ver <- llvm_verify m "gf_sq" [] false gf_sq_sp w4_z3;
+print("gf_sq done!");
+
+//gf_inv
+let gf_inv_sp = do {
+    k <- llvm_fresh_var "in" (llvm_int 16);
+    llvm_execute_func [llvm_term k];
+    llvm_return (llvm_term {{gf_inv k}});
+};
+
+gf_inv_ver <- llvm_verify m "gf_inv" [] false gf_inv_sp w4_z3;
+print("gf_inv done!");
+
+//gf_frac
+let gf_frac_sp = do {
+    den <- llvm_fresh_var "den" (llvm_int 16);
+    num <- llvm_fresh_var "num" (llvm_int 16);
+    llvm_execute_func [llvm_term den, llvm_term num];
+    llvm_return (llvm_term {{gf_frac den num}});
+};
+
+gf_frac_ver <- llvm_verify m "gf_frac" [] false gf_frac_sp w4_z3;
+print("gf_frac done!");
+
+
+let eval_sp = do {
+  f <- llvm_fresh_var "f" (llvm_array 65 (llvm_int 16));
+  pf <- llvm_alloc_readonly (llvm_array 65 (llvm_int 16));
+  llvm_points_to pf (llvm_term f);
+  a <- llvm_fresh_var "a" (llvm_int 16);
+  llvm_execute_func [pf, llvm_term a];
+  llvm_return (llvm_term {{ eval f a }});
+};
+
+eval_ver <- llvm_verify m "eval" [] false eval_sp w4_z3;
+print("eval done!");
+
+let ptr_to_fresh n ty = do {
+    x <- llvm_fresh_var n ty;
+    p <- llvm_alloc ty;
+    llvm_points_to p (llvm_term x);
+    return (x, p);
+};
+
+let ptr_to_fresh_readonly n ty = do {
+    x <- llvm_fresh_var n ty;
+    p <- llvm_alloc_readonly ty;
+    llvm_points_to p (llvm_term x);
+    return (x, p);
+};
+
+
+let synd_spec = do {
+  pout <- llvm_alloc (llvm_array (eval_int {{2*64 : [width 2*64]}}) (llvm_int 16));
+  (f, pf) <- ptr_to_fresh_readonly "f" (llvm_array (eval_int {{64 + 1 : [width (64 + 1)]}}) (llvm_int 16));
+  (L, pL) <- ptr_to_fresh_readonly "L" (llvm_array 3488 (llvm_int 16));
+  (r, pr) <- ptr_to_fresh_readonly "r" (llvm_array (eval_int {{3488/8 : [width 3488]}}) (llvm_int 8));
+  llvm_execute_func [pout, pf, pL, pr];
+  llvm_points_to pout (llvm_term {{ synd f L r }});
+};
+
+
+let synd_loop_spec = do {
+  in_v <- llvm_fresh_var "in" (llvm_array 128 (llvm_int 16));
+  pin <- llvm_alloc (llvm_array 128 (llvm_int 16));
+  llvm_points_to pin (llvm_term in_v);
+  f <- llvm_fresh_var "f" (llvm_array 65 (llvm_int 16));
+  pf <- llvm_alloc_readonly (llvm_array 65 (llvm_int 16));
+  llvm_points_to pf (llvm_term f);
+  li <- llvm_fresh_var "li" (llvm_int 16);
+  c <- llvm_fresh_var "c" (llvm_int 16);
+  llvm_execute_func [pin, pf, llvm_term li, llvm_term c];
+  llvm_points_to pin (llvm_term {{ synd_loop f li c in_v }});
+};
+
+
+synd_loop_ver <- llvm_verify m "synd_loop" [eval_ver, gf_inv_ver, gf_add_ver, gf_mul_ver] false synd_loop_spec (w4_unint_z3 ["gf_mul", "gf_inv", "gf_add", "eval"]);
+print("synd_loop done!");
